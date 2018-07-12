@@ -16,6 +16,14 @@
 
   <PropertyGroup>
     <LangVersion>7.1</LangVersion>
+    <Version>0.1.0</Version>
+    <Authors>Paweł Kaczyński</Authors>
+    <Description>A library that provides ObjectComparer which can perform a deep comparison of two objects as well as return a list of found differences</Description>
+    <Copyright>The Unlicense</Copyright>
+    <PackageLicenseUrl>https://github.com/p-kaczynski/DeepObjectDiff/blob/master/LICENSE</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/p-kaczynski/DeepObjectDiff/</PackageProjectUrl>
+    <RepositoryType>Git</RepositoryType>
+    <RepositoryUrl>https://github.com/p-kaczynski/DeepObjectDiff/</RepositoryUrl>
   </PropertyGroup>
 
 </Project>
