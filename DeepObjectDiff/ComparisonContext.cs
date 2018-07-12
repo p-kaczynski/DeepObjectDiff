@@ -42,7 +42,7 @@ namespace DeepObjectDiff
 
         internal bool TryEnterObject<TRef>(TRef first, TRef second)
         {
-            if (typeof(TRef).IsValueType || typeof(string).IsValueType) return true;
+            if (typeof(TRef).IsValueType || typeof(TRef) == typeof(string)) return true;
 
             var firstWr = new WeakReference(first);
             var secondWr = new WeakReference(second);
