@@ -7,23 +7,33 @@ using JetBrains.Annotations;
 namespace DeepObjectDiff
 {
     /// <summary>
-    /// Universal comparer of objects. Use <see cref="CompareOptions"/> to customize the behaviour.
+    ///     Universal comparer of objects. Use <see cref="CompareOptions" /> to customize the behaviour.
     /// </summary>
     public static class ObjectComparer
     {
         /// <summary>
-        /// Performs a deep object comparison between <paramref name="first"/> and <see cref="second"/> by first trying conventional means, and if those do not give clear answer,
-        /// traverses down the object graph to determine whether the objects are equivalent as understood by settings provided in <see cref="CompareOptions"/>.
-        /// Additionally it provides encountered differences along with their path in the object graph in an out parameter <paramref name="differences"/>
+        ///     Performs a deep object comparison between <paramref name="first" /> and <see cref="second" /> by first trying
+        ///     conventional means, and if those do not give clear answer,
+        ///     traverses down the object graph to determine whether the objects are equivalent as understood by settings provided
+        ///     in <see cref="CompareOptions" />.
+        ///     Additionally it provides encountered differences along with their path in the object graph in an out parameter
+        ///     <paramref name="differences" />
         /// </summary>
         /// <typeparam name="T">Type of objects to compare.</typeparam>
         /// <param name="first">First object of comparison</param>
-        /// <param name="second">Second object of comparison to compare with <paramref name="first"/></param>
-        /// <param name="differences">Out parameter set to contain encoutnered differences between <paramref name="first"/> and <paramref name="second"/>, if any</param>
+        /// <param name="second">Second object of comparison to compare with <paramref name="first" /></param>
+        /// <param name="differences">
+        ///     Out parameter set to contain encoutnered differences between <paramref name="first" /> and
+        ///     <paramref name="second" />, if any
+        /// </param>
         /// <param name="options">(optional) User-provided settings that customise behaviour of the comparison</param>
-        /// <returns><c>true</c> if objects are equivalent as understood by provided <paramref name="options"/> (or default <see cref="CompareOptions"/>), otherwise <c>false</c></returns>
+        /// <returns>
+        ///     <c>true</c> if objects are equivalent as understood by provided <paramref name="options" /> (or default
+        ///     <see cref="CompareOptions" />), otherwise <c>false</c>
+        /// </returns>
         [PublicAPI]
-        public static bool Compare<T>([CanBeNull]T first, [CanBeNull]T second, out ObjectDifference[] differences, [CanBeNull]CompareOptions options = null)
+        public static bool Compare<T>([CanBeNull] T first, [CanBeNull] T second, out ObjectDifference[] differences,
+            [CanBeNull] CompareOptions options = null)
         {
             // Use default options if not provide by users
             options = options ?? new CompareOptions();
@@ -40,13 +50,27 @@ namespace DeepObjectDiff
             return equal;
         }
 
+        /// <summary>
+        ///     Actual comparisoon implementation that will be called recursively if needed
+        /// </summary>
+        /// <typeparam name="T">Type of objects to compare.</typeparam>
+        /// <param name="first">First object of comparison</param>
+        /// <param name="second">Second object of comparison to compare with <paramref name="first" /></param>
+        /// <param name="options">(optional) User-provided settings that customise behaviour of the comparison</param>
+        /// <param name="provider">Property provider to be reused across the comparison to take advantage of caching</param>
+        /// <param name="comparisonContext">Current context of the comparison</param>
+        /// <returns>
+        ///     <c>true</c> if objects are equivalent as understood by provided <paramref name="options" /> (or default
+        ///     <see cref="CompareOptions" />), otherwise <c>false</c>
+        /// </returns>
         private static bool Compare<T>(T first, T second, CompareOptionsInternal options,
             PropertyProvider provider, ComparisonContext comparisonContext)
         {
             // 0. Initial checks
             // 0.1 Recursion check
-            if(!comparisonContext.TryEnterObject(first, second))
-                throw new InvalidOperationException($"Detected a circular reference at {comparisonContext.GetCurrentPath()}. Add the property to the blacklist to compare those objects");
+            if (!comparisonContext.TryEnterObject(first, second))
+                throw new InvalidOperationException(
+                    $"Detected a circular reference at {comparisonContext.GetCurrentPath()}. Add the property to the blacklist to compare those objects");
             try
             {
                 // 0.2 Type blacklist check
@@ -107,32 +131,23 @@ namespace DeepObjectDiff
                 // 5. Is the object a collection?
                 // 5.1 IDictionary
                 if (typeof(T).TryAsGenericDictionary(out var keyType, out var valueType))
-                {
-                    // TODO: cache?
                     return CallCollectionComparer(nameof(CompareDictionaries), first, second, options,
                         provider, comparisonContext, keyType, valueType);
-                }
 
                 // 5.2 Set
                 if (typeof(T).TryAsGenericSet(out var elementType))
-                {
                     return CallCollectionComparer(nameof(CompareSet), first, second, options,
                         provider, comparisonContext, elementType);
-                }
 
                 // 5.3 List
                 if (typeof(T).TryAsGenericList(out elementType))
-                {
                     return CallCollectionComparer(nameof(CompareList), first, second, options,
                         provider, comparisonContext, elementType);
-                }
 
                 // 5.4 Enumerable
                 if (typeof(T).TryAsGenericEnumerable(out elementType))
-                {
                     return CallCollectionComparer(nameof(CompareEnumerable), first, second, options,
                         provider, comparisonContext, elementType);
-                }
 
                 // 6. Not enumerable, we don't know how to check it - now the fun starts.
                 //    We are actually going to get the properties and compare them one to one
@@ -166,15 +181,15 @@ namespace DeepObjectDiff
         }
 
         /// <summary>
-        /// A helper that allows calling the <see cref="Compare{T}"/> method even if we can't explicitly provide type T
+        ///     A helper that allows calling the <see cref="Compare{T}" /> method even if we can't explicitly provide type T
         /// </summary>
         /// <param name="compareType">Type of the objects to compare</param>
         /// <param name="first">First object of comparison</param>
-        /// <param name="second">Second object of comparison, to be compared with <paramref name="first"/></param>
+        /// <param name="second">Second object of comparison, to be compared with <paramref name="first" /></param>
         /// <param name="options">Options of the comparison</param>
         /// <param name="provider">PropertyProvider, reused to take advantage of caching</param>
         /// <param name="comparisonContext">Current context of the comparison</param>
-        /// <returns>Result of <see cref="Compare{T}"/> method called with above parameters</returns>
+        /// <returns>Result of <see cref="Compare{T}" /> method called with above parameters</returns>
         private static bool CallCompareFor(Type compareType, object first, object second,
             CompareOptionsInternal options, PropertyProvider provider, ComparisonContext comparisonContext)
         {
@@ -186,19 +201,26 @@ namespace DeepObjectDiff
             // This whole thing is so we can do MakeGenericMethod - normally for Method<T>, T must be eitehr explicitly stated, or passed as dynamic for runtime binding, however we know the type - only it's in a variable
             return (bool) method
                 .MakeGenericMethod(compareType)
-                .Invoke(null, new[] {first, second, options, provider, comparisonContext}); // we pass the parameters as needed by the Compare method
+                .Invoke(null,
+                    new[]
+                    {
+                        first, second, options, provider, comparisonContext
+                    }); // we pass the parameters as needed by the Compare method
         }
 
         /// <summary>
-        /// A helper that allows calling one of the generic collection comparers while having the type in a variable
+        ///     A helper that allows calling one of the generic collection comparers while having the type in a variable
         /// </summary>
         /// <param name="methodName">Name of the collection comparer to use</param>
         /// <param name="first">First object of comparison</param>
-        /// <param name="second">Second object of comparison, to be compared with <paramref name="first"/></param>
+        /// <param name="second">Second object of comparison, to be compared with <paramref name="first" /></param>
         /// <param name="options">Options of the comparison</param>
         /// <param name="provider">PropertyProvider, reused to take advantage of caching</param>
         /// <param name="comparisonContext">Current context of the comparison</param>
-        /// <param name="genericArguments">Generic arguments to pass to the methods (either element type, or key/value types for <see cref="IDictionary{TKey,TValue}"/>)</param>
+        /// <param name="genericArguments">
+        ///     Generic arguments to pass to the methods (either element type, or key/value types for
+        ///     <see cref="IDictionary{TKey,TValue}" />)
+        /// </param>
         /// <returns>Result of called comparer</returns>
         private static bool CallCollectionComparer(string methodName, object first, object second,
             CompareOptionsInternal options,
@@ -217,12 +239,13 @@ namespace DeepObjectDiff
         }
 
         /// <summary>
-        /// Compares two <see cref="IDictionary{TKey,TValue}"/> objects to determine whether they have the same keys and contain the same objects under said keys
+        ///     Compares two <see cref="IDictionary{TKey,TValue}" /> objects to determine whether they have the same keys and
+        ///     contain the same objects under said keys
         /// </summary>
-        /// <typeparam name="TKey">Key type of the <see cref="IDictionary{TKey,TValue}"/></typeparam>
-        /// <typeparam name="TValue">Value type of the <see cref="IDictionary{TKey,TValue}"/></typeparam>
+        /// <typeparam name="TKey">Key type of the <see cref="IDictionary{TKey,TValue}" /></typeparam>
+        /// <typeparam name="TValue">Value type of the <see cref="IDictionary{TKey,TValue}" /></typeparam>
         /// <param name="first">First dictionary for comparison</param>
-        /// <param name="second">Second dictionary for comparison, to be compared with <paramref name="first"/></param>
+        /// <param name="second">Second dictionary for comparison, to be compared with <paramref name="first" /></param>
         /// <param name="options">Options of the comparison</param>
         /// <param name="provider">PropertyProvider, reused to take advantage of caching</param>
         /// <param name="comparisonContext">Current context of the comparison</param>
@@ -285,11 +308,12 @@ namespace DeepObjectDiff
         }
 
         /// <summary>
-        /// Compares two <see cref="ISet{T}"/> objects to determine if they contain the same objects (by the same rules as <see cref="Compare{T}"/> method)
+        ///     Compares two <see cref="ISet{T}" /> objects to determine if they contain the same objects (by the same rules as
+        ///     <see cref="Compare{T}" /> method)
         /// </summary>
-        /// <typeparam name="TElement">Type of the <see cref="ISet{T}"/> element</typeparam>
+        /// <typeparam name="TElement">Type of the <see cref="ISet{T}" /> element</typeparam>
         /// <param name="first">First set to compare</param>
-        /// <param name="second">Second set to compare with <see cref="first"/></param>
+        /// <param name="second">Second set to compare with <see cref="first" /></param>
         /// <param name="options">Options of the comparison</param>
         /// <param name="provider">PropertyProvider, reused to take advantage of caching</param>
         /// <param name="comparisonContext">Current context of the comparison</param>
@@ -297,51 +321,56 @@ namespace DeepObjectDiff
         // ReSharper disable SuggestBaseTypeForParameter - I know it doesn't need to be a set, because we rewrite it into another set anyway, but it communicates the purpose better and it does not mess with MakeGenericMethod
         private static bool CompareSet<TElement>(ISet<TElement> first,
             ISet<TElement> second, CompareOptionsInternal options,
-            PropertyProvider provider, ComparisonContext comparisonContext)
-            => CompareAsSets(first, second, options, provider, comparisonContext);
+            PropertyProvider provider, ComparisonContext comparisonContext) =>
+            CompareAsSets(first, second, options, provider, comparisonContext);
         // ReSharper enable SuggestBaseTypeForParameter
 
         /// <summary>
-        /// Compares two <see cref="IList{T}"/> objects to determine if they contain the same objects (by the same rules as <see cref="Compare{T}"/> method), and possibly in the same order, as determined by <paramref name="options"/>
+        ///     Compares two <see cref="IList{T}" /> objects to determine if they contain the same objects (by the same rules as
+        ///     <see cref="Compare{T}" /> method), and possibly in the same order, as determined by <paramref name="options" />
         /// </summary>
-        /// <typeparam name="TElement">Type of the <see cref="IList{T}"/> element</typeparam>
+        /// <typeparam name="TElement">Type of the <see cref="IList{T}" /> element</typeparam>
         /// <param name="first">First list to compare</param>
-        /// <param name="second">Second list to compare with <see cref="first"/></param>
+        /// <param name="second">Second list to compare with <see cref="first" /></param>
         /// <param name="options">Options of the comparison</param>
         /// <param name="provider">PropertyProvider, reused to take advantage of caching</param>
         /// <param name="comparisonContext">Current context of the comparison</param>
-        /// <returns><c>true</c> if lists contain the same objects (and possibly in the same order as determined by <paramref name="options"/>), otherwise <c>false</c></returns>
+        /// <returns>
+        ///     <c>true</c> if lists contain the same objects (and possibly in the same order as determined by
+        ///     <paramref name="options" />), otherwise <c>false</c>
+        /// </returns>
         private static bool CompareList<TElement>(IList<TElement> first,
             IList<TElement> second, CompareOptionsInternal options,
-            PropertyProvider provider, ComparisonContext comparisonContext) 
-            => options.VerifyListOrder 
-                ? CompareAsEnumeration(first, second, options, provider, comparisonContext) 
-                : CompareAsSets(first, second, options, provider, comparisonContext); // use set approach if they can be anywhere (order insensitive)
+            PropertyProvider provider, ComparisonContext comparisonContext) => options.VerifyListOrder
+            ? CompareAsEnumeration(first, second, options, provider, comparisonContext)
+            : CompareAsSets(first, second, options, provider, comparisonContext);
 
         /// <summary>
-        /// Compares two <see cref="IEnumerable{T}"/> objects to determine if they contain the same objects (by the same rules as <see cref="Compare{T}"/> method) in the same order
+        ///     Compares two <see cref="IEnumerable{T}" /> objects to determine if they contain the same objects (by the same rules
+        ///     as <see cref="Compare{T}" /> method) in the same order
         /// </summary>
-        /// <typeparam name="TElement">Type of the <see cref="IEnumerable{T}"/> element</typeparam>
+        /// <typeparam name="TElement">Type of the <see cref="IEnumerable{T}" /> element</typeparam>
         /// <param name="first">First enumerabe to compare</param>
-        /// <param name="second">Second enumerable to compare with <see cref="first"/></param>
+        /// <param name="second">Second enumerable to compare with <see cref="first" /></param>
         /// <param name="options">Options of the comparison</param>
         /// <param name="provider">PropertyProvider, reused to take advantage of caching</param>
         /// <param name="comparisonContext">Current context of the comparison</param>
         /// <returns><c>true</c> if enumerable contain the same objects in the same order, otherwise <c>false</c></returns>
         private static bool CompareEnumerable<TElement>(IEnumerable<TElement> first,
             IEnumerable<TElement> second, CompareOptionsInternal options,
-            PropertyProvider provider, ComparisonContext comparisonContext)
-                => !options.EnumerateEnumerables // we might be prohibited from enumerating enumerables
-                    || CompareAsEnumeration(first, second, options, provider, comparisonContext); // if not, we use the zip approach
+            PropertyProvider provider, ComparisonContext comparisonContext) =>
+            !options.EnumerateEnumerables // we might be prohibited from enumerating enumerables
+            || CompareAsEnumeration(first, second, options, provider, comparisonContext);
 
 
         /// <summary>
-        /// Compares two <see cref="ICollection{T}"/> objects to determine if they contain the same objects (by the same rules as <see cref="Compare{T}"/> method)
-        /// It treats the collections as sets, i.e. does not care about order, just about containing the same objects.
+        ///     Compares two <see cref="ICollection{T}" /> objects to determine if they contain the same objects (by the same rules
+        ///     as <see cref="Compare{T}" /> method)
+        ///     It treats the collections as sets, i.e. does not care about order, just about containing the same objects.
         /// </summary>
-        /// <typeparam name="TElement">Type of the <see cref="ICollection{T}"/> element</typeparam>
+        /// <typeparam name="TElement">Type of the <see cref="ICollection{T}" /> element</typeparam>
         /// <param name="first">First collection to compare</param>
-        /// <param name="second">Second collection to compare with <see cref="first"/></param>
+        /// <param name="second">Second collection to compare with <see cref="first" /></param>
         /// <param name="options">Options of the comparison</param>
         /// <param name="provider">PropertyProvider, reused to take advantage of caching</param>
         /// <param name="comparisonContext">Current context of the comparison</param>
@@ -351,13 +380,15 @@ namespace DeepObjectDiff
             CompareOptionsInternal options, PropertyProvider provider, ComparisonContext comparisonContext)
         {
             // We first look at the difference between first and second
-            var firstCompare = new HashSet<TElement>(first, new ProxyEqualityComparer<TElement>(options, provider, comparisonContext));
+            var firstCompare = new HashSet<TElement>(first,
+                new ProxyEqualityComparer<TElement>(options, provider, comparisonContext));
             firstCompare.ExceptWith(second);
             foreach (var difference in firstCompare)
                 comparisonContext.AddDifferenceAtCurrentPath(difference, null);
 
             // and then at the difference between second and first
-            var secondCompare = new HashSet<TElement>(second, new ProxyEqualityComparer<TElement>(options, provider, comparisonContext));
+            var secondCompare = new HashSet<TElement>(second,
+                new ProxyEqualityComparer<TElement>(options, provider, comparisonContext));
             secondCompare.ExceptWith(first);
             foreach (var difference in secondCompare)
                 comparisonContext.AddDifferenceAtCurrentPath(null, difference);
@@ -369,11 +400,12 @@ namespace DeepObjectDiff
         }
 
         /// <summary>
-        /// Compares two <see cref="IEnumerable{T}"/> objects to determine if they contain the same objects (by the same rules as <see cref="Compare{T}"/> method) in the same order
+        ///     Compares two <see cref="IEnumerable{T}" /> objects to determine if they contain the same objects (by the same rules
+        ///     as <see cref="Compare{T}" /> method) in the same order
         /// </summary>
-        /// <typeparam name="TElement">Type of the <see cref="IEnumerable{T}"/> element</typeparam>
+        /// <typeparam name="TElement">Type of the <see cref="IEnumerable{T}" /> element</typeparam>
         /// <param name="first">First enumerabe to compare</param>
-        /// <param name="second">Second enumerable to compare with <see cref="first"/></param>
+        /// <param name="second">Second enumerable to compare with <see cref="first" /></param>
         /// <param name="options">Options of the comparison</param>
         /// <param name="provider">PropertyProvider, reused to take advantage of caching</param>
         /// <param name="comparisonContext">Current context of the comparison</param>
@@ -391,7 +423,7 @@ namespace DeepObjectDiff
 
 
         /// <summary>
-        /// A helper map of <see cref="StringComparison"/> to <see cref="StringComparer"/> that uses those settings
+        ///     A helper map of <see cref="StringComparison" /> to <see cref="StringComparer" /> that uses those settings
         /// </summary>
         private static readonly IReadOnlyDictionary<StringComparison, StringComparer> StringComparisonToStringComparer
             = new Dictionary<StringComparison, StringComparer>
@@ -406,21 +438,24 @@ namespace DeepObjectDiff
 
         /// <inheritdoc />
         /// <summary>
-        /// An <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation that uses <see cref="M:DeepObjectDiff.ObjectComparer.Compare``1(``0,``0,DeepObjectDiff.ObjectDifference[]@,DeepObjectDiff.CompareOptions)" /> method to determine equality (or rather equivalence)
+        ///     An <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> implementation that uses
+        ///     <see
+        ///         cref="M:DeepObjectDiff.ObjectComparer.Compare``1(``0,``0,DeepObjectDiff.ObjectDifference[]@,DeepObjectDiff.CompareOptions)" />
+        ///     method to determine equality (or rather equivalence)
         /// </summary>
         /// <typeparam name="T">Type of the objects to compare</typeparam>
         private class ProxyEqualityComparer<T> : IEqualityComparer<T>
         {
+            private readonly ComparisonContext _comparisonContext;
             private readonly CompareOptionsInternal _options;
             private readonly PropertyProvider _provider;
-            private readonly ComparisonContext _comparisonContext;
 
             public ProxyEqualityComparer(CompareOptionsInternal options, PropertyProvider provider,
                 ComparisonContext comparisonContext)
             {
                 _options = options;
                 _provider = provider;
-                
+
                 // we clone the context, as in multithreaded scenario this would behave very weirdly
                 _comparisonContext = (ComparisonContext) comparisonContext.Clone();
 
