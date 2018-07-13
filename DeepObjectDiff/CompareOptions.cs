@@ -6,10 +6,19 @@ using JetBrains.Annotations;
 
 namespace DeepObjectDiff
 {
+    /// <summary>
+    /// A class to customize the behaviour of <see cref="ObjectComparer"/>
+    /// </summary>
     public class CompareOptions
     {
         internal IDictionary<Type, object> EqualityComparers { get; } = new Dictionary<Type, object>();
 
+        /// <summary>
+        /// Provides a way to add a custom <see cref="IEqualityComparer{T}"/> for a <typeparamref name="T"/> type objects.
+        /// </summary>
+        /// <typeparam name="T">Type of the object for which a custom comparer is defined</typeparam>
+        /// <param name="comparer">A custom comparare too use when comparing objects of type <typeparamref name="T"/></param>
+        /// <returns><code>this</code> for method chaining</returns>
         [PublicAPI]
         public CompareOptions Use<T>(IEqualityComparer<T> comparer)
         {
@@ -56,6 +65,9 @@ namespace DeepObjectDiff
         public bool StopAtFirstDifference { get; [PublicAPI] set; } = true;
     }
 
+    /// <summary>
+    /// A class that rewrites data from <see cref="CompareOptions"/> in a read-only format to be used by <see cref="ObjectComparer"/>
+    /// </summary>
     internal class CompareOptionsInternal
     {
         internal IDictionary<Type, object> EqualityComparers { get; }
